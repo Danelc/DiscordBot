@@ -1,0 +1,13 @@
+/.env
+/application.yml
+/ffmpeg.exe
+/Git
+/Lavalink.jar
+/logs
+/main.py
+/music.py
+/RunBot.bat
+/slash.py
+/test.py
+/Wall.py
+/__pycache__
