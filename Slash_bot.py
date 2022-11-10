@@ -205,6 +205,20 @@ async def shuffle(interaction: discord.Interaction):
     await lavalink.shuffle(interaction.guild.id)
     await interaction.response.send_message("Shuffled the queue.")
 
+@bot.tree.command(name="remove", description="Remove a track from the queue")
+async def shuffle(interaction: discord.Interaction,position:int):
+    try:
+        queue=lavalink.queue(interaction.guild.id)
+        if position <= len(queue):
+            ReTitle = queue[position].title
+            await lavalink.remove(interaction.guild.id,position)
+            await interaction.response.send_message(f"Removed {ReTitle} from the queue. bad song BAD")
+        else:
+            await interaction.response.send_message(f"No track with that position.")
+    except:
+        await interaction.response.send_message(f"There is no queue.")
+
+
 @bot.tree.command(name="repeat", description="Repeat the current track/queue")
 @app_commands.describe(status="Should we repeat?", queue="should we repeat the whole queue?")
 async def repeat(interaction: discord.Interaction, status: bool, queue: bool = False):
