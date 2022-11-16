@@ -322,13 +322,27 @@ async def _filter(interaction: discord.Interaction, rotation:float=0.0,tremolo:f
 
 def ToFormat(words:str):
     return words.strip().title()
+    
+def MultipleList(lst: list):
+    expandList = []
+    for i in lst:
+        m = i.split('|')
+        if(len(m) == 2):
+            value = m[0].strip()
+            amount = m[1].strip()
+            if(amount.isnumeric() and int(amount)>0):
+                expandList += [value] * int(amount)
+                continue
+        expandList.append(i)
+    return expandList 
 
 @bot.tree.command(name="roulette", description="get a shity choice right here!")
-@app_commands.describe(choices="list the options with a comma inbetween each choice")
+@app_commands.describe(choices="list the options with a comma inbetween each choice and | to add multiple of a choice")
 async def seek(interaction: discord.Interaction, choices:str):
     if ',' in choices:
         opt=choices.split(",")
         opt = list(map(ToFormat,filter(None,opt)))
+        opt=MultipleList(opt)
         if len(opt)>1:
             congratz=opt[random.randint(0,len(opt)-1)]
             precent=(opt.count(congratz)/len(opt))*100
@@ -439,12 +453,7 @@ async def BirthUpdate():
     return discord.Embed(title="Happy BirthDay!",description="\n".join(lis))
 
 def RelativeTimeFormat(date: datetime) -> str:
-    # Get the end date
-    #end_date = date + datetime.timedelta(days=days, hours=hours, minutes=minutes, seconds=seconds)
-
-    # Get a tuple of the date attributes
     date_tuple = (date.year, date.month, date.day, date.hour, date.minute, date.second)
-
     # Convert to unix time
     return f'<t:{int(time.mktime(datetime(*date_tuple).timetuple()))}:R>'
 def json_read(path):
