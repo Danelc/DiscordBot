@@ -80,10 +80,13 @@ async def join(interaction: discord.Interaction):
 
 @bot.tree.command(name="leave", description="Leave the voice channel")
 async def leave(interaction: discord.Interaction):
-    await interaction.guild.change_voice_state(channel=None)
-    await lavalink.wait_for_remove_connection(interaction.guild.id)
-    await interaction.response.send_message("Left the voice channel.bye tamut")
-    await bot.change_presence(activity=discord. Activity(type=discord.ActivityType.watching, name=DefaultPresence))
+    try:
+        await interaction.guild.change_voice_state(channel=None)
+        await lavalink.wait_for_remove_connection(interaction.guild.id)
+        await interaction.response.send_message("Left the voice channel.bye tamut")
+        await bot.change_presence(activity=discord. Activity(type=discord.ActivityType.watching, name=DefaultPresence))
+    except:
+        await interaction.response.send_message("IM NOT IN A CHANNEL ARE YOU RETARDED?")
 
 @bot.tree.command(name="search", description="Search for a song")
 @app_commands.describe(query="Search for a song")
@@ -225,17 +228,19 @@ async def skip(interaction: discord.Interaction):
     
 
 @bot.tree.command(name="queue", description="Get the queue")
-@app_commands.describe(amount="The amount of tracks you want to see. Default is 20.")
-async def queue(interaction: discord.Interaction,amount:int=20):
-    queue = await lavalink.queue(interaction.guild.id)
+@app_commands.describe(amount="The amount of tracks you want to see. Default is 10.")
+async def queue(interaction: discord.Interaction,amount:int=10):
+    try:
+        queue = await lavalink.queue(interaction.guild.id)
+    except:
+        return await interaction.response.send_message("No tracks in queue.")
     totalms = 0
     for track in queue:
         totalms= totalms + track.length
     lis= queue.copy()
-    if not lis:
-        return await interaction.response.send_message("No tracks in queue.")
+    await interaction.response.defer(ephemeral=True)
     tracks = [f"**{i + 1}.** {t.title} ({await bot.fetch_user(int(t.requester))})" for (i, t) in enumerate(lis[:amount])]
-    await interaction.response.send_message("\n".join(tracks)+"\n**Total Track amount: "+str(len(queue))+" , and a total playtime of "+lengthFormat(totalms)+".**",ephemeral=True)
+    await interaction.followup.send("\n".join(tracks)+"\n**Total Track amount: "+str(len(queue))+" , and a total playtime of "+lengthFormat(totalms)+".**",ephemeral=True)
 
 @bot.tree.command(name="volume", description="Set the volume of the player")
 @app_commands.describe(volume="Set the volume to a number between 0 and 100")
@@ -249,14 +254,21 @@ async def volume(interaction: discord.Interaction, volume: int):
 @bot.tree.command(name="seek", description="Seek to a specific time")
 @app_commands.describe(position="The time to seek to in hh:mm:ss format")
 async def seek(interaction: discord.Interaction, position: str):
-    await lavalink.seek(interaction.guild.id, formatMillisecs(position))
-    track =await lavalink.queue(interaction.guild.id)
-    await interaction.response.send_message(f"Seeked to {position} in "+track[0].title+".")
+    try:
+        await lavalink.seek(interaction.guild.id, formatMillisecs(position))
+        track =await lavalink.queue(interaction.guild.id)
+        await interaction.response.send_message(f"Seeked to {position} in "+track[0].title+".")
+    except:
+        await interaction.response.send_message(f"Not playing anyhting.")
 
 @bot.tree.command(name="shuffle", description="Shuffle the queue")
 async def shuffle(interaction: discord.Interaction):
-    await lavalink.shuffle(interaction.guild.id)
-    await interaction.response.send_message("Shuffled the queue.")
+    try:
+        await lavalink.shuffle(interaction.guild.id)
+        await interaction.response.send_message("Shuffled the queue.")
+    except:
+        await interaction.response.send_message("Not playing anything.")
+
 
 @bot.tree.command(name="remove", description="Remove a track from the queue")
 @app_commands.describe(position="The track position in the queue. Leave empty to remove the last track in the queue.")
@@ -308,19 +320,24 @@ async def _filter(interaction: discord.Interaction, rotation:float=0.0,tremolo:f
     await lavalink.filters(interaction.guild.id, filters)
     await interaction.response.send_message("Filter applied.")
 
+def ToFormat(words:str):
+    return words.strip().title()
+
 @bot.tree.command(name="roulette", description="get a shity choice right here!")
 @app_commands.describe(choices="list the options with a comma inbetween each choice")
 async def seek(interaction: discord.Interaction, choices:str):
     if ',' in choices:
         opt=choices.split(",")
-        opt = list(filter(None,opt))
+        opt = list(map(ToFormat,filter(None,opt)))
         if len(opt)>1:
+            congratz=opt[random.randint(0,len(opt)-1)]
+            precent=(opt.count(congratz)/len(opt))*100
             embed=discord.Embed(
-                title=opt[random.randint(0,len(opt)-1)].strip().title(),
-                description="",
+                title=congratz,
+                description=f"with a chance of {precent}%",
                 color=interaction.user.color or discord.Color.random()
                 )
-            await interaction.response.send_message("Ccongraawrasffisakgfjpgasdtulations! The Chosen option is:", embed=embed)
+            await interaction.response.send_message(f"Ccongraawrasffisakgfjpgasdtulations! The Chosen option is:", embed=embed)
             return
     await interaction.response.send_message("I kinda didnt find any commas in your choices, and thus fuck you.")
 
