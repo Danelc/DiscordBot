@@ -453,6 +453,7 @@ async def feed_update():
         list_links = [f"**{i + 1}.** [{t.get('title')}]({t.get('link')})" for (i, t) in enumerate(result)]
         embed = discord.Embed(
             title="A new Anime has been released!",
+
             description="\n".join(list_links),
         )
         return embed
