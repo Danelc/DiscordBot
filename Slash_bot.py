@@ -440,8 +440,9 @@ async def spor(interaction: discord.Interaction):
 @bot.tree.command(name="birthday", description="get a list of birthdays")
 async def birthday(interaction: discord.Interaction):
     data = json_read("BirthDay")
+    
     lis=[f"**{i + 1}.** {bot.get_user(t.get('id'))} - {t.get('date').split(' ')[0]} which is {RelativeTimeFormat(datetime.strptime(t.get('date').split(' ')[0],'%Y-%m-%d'))}"for (i, t) in enumerate(data)]
-    embed = discord.Embed(title="Who needs bookface when you have xybot:",description="\n".join(lis))
+    embed = discord.Embed(title=f"Who needs bookface when you have {bot.user.display_name}:",description="\n".join(lis))
     #embed.add_field(f"**{i + 1}.** {bot.get_user(t.get('id'))} - {t.get('date')}"for (i, t) in enumerate(data))
     await interaction.response.send_message(embed=embed,ephemeral=True)
 
