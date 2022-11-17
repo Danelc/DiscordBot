@@ -423,9 +423,22 @@ async def FeedUpdate():
             description="\n".join(LIS),
             )
         return(embed) 
+@bot.tree.command(name="spor", description="3 2 1 countdown.")
+async def spor(interaction: discord.Interaction):
+    tracks=await lavalink.auto_search_tracks("https://www.youtube.com/watch?v=kOrZEjLrno0")
+    if not interaction.guild.voice_client:
+        if not interaction.user.voice:
+            await interaction.followup.send("You are not in a voice channel!",ephemeral=True)
+            return
+        await interaction.guild.change_voice_state(channel=interaction.user.voice.channel, self_deaf=True, self_mute=False)
+        await lavalink.wait_for_connection(interaction.guild.id)
+    await interaction.response.send_message("Good luck watching Boku No Pico!")
+    await lavalink.play(interaction.guild.id, tracks[0], interaction.user.id)
+    await lavalink.seek(interaction.guild_id,1000)
+    
 
 @bot.tree.command(name="birthday", description="get a list of birthdays")
-async def ping(interaction: discord.Interaction):
+async def birthday(interaction: discord.Interaction):
     data = json_read("BirthDay")
     lis=[f"**{i + 1}.** {bot.get_user(t.get('id'))} - {t.get('date').split(' ')[0]} which is {RelativeTimeFormat(datetime.strptime(t.get('date').split(' ')[0],'%Y-%m-%d'))}"for (i, t) in enumerate(data)]
     embed = discord.Embed(title="Who needs bookface when you have xybot:",description="\n".join(lis))
