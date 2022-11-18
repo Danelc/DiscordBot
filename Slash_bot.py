@@ -23,6 +23,14 @@ DefaultPresence = 'boku no pico'
 
 LOG = logging.getLogger("discord.bot")
 
+troll_users_links = {
+    353219254641885184: "https://www.youtube.com/watch?v=Sxe9qZ-KDHY",  # shauli
+    320501259205607425: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",  # uriel
+    134769648234266624: "https://www.youtube.com/watch?v=5EXFilTUiko",  # Dan
+    256448898925723650: "https://www.youtube.com/watch?v=-LPlUYbabqk",  # yoram
+    319920206296121344: "https://www.youtube.com/watch?v=oItK1u07Qt0",  # doron
+}
+
 
 class MyClient(discord.Client):
     def __init__(self, *, intents: discord.Intents):
@@ -118,19 +126,10 @@ async def play(interaction: discord.Interaction, *, query: str):
     await interaction.response.defer()  # The auto search in the next line might take more then 3 soconds that are allowed until response and thus the defer
     if random.randint(1, trollRoll) == 1 and not trollRoll == 0:
         troll = True
-        match interaction.user.id:
-            case 353219254641885184:  # shauli
-                tracks = await lavalink.auto_search_tracks("https://www.youtube.com/watch?v=Sxe9qZ-KDHY")
-            case 320501259205607425:  # uriel
-                tracks = await lavalink.auto_search_tracks("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
-            case 134769648234266624:  # Dan
-                tracks = await lavalink.auto_search_tracks("https://www.youtube.com/watch?v=5EXFilTUiko")
-            case 256448898925723650:  # yoram
-                tracks = await lavalink.auto_search_tracks("https://www.youtube.com/watch?v=-LPlUYbabqk")
-            case 319920206296121344:  # doron
-                tracks = await lavalink.auto_search_tracks("https://www.youtube.com/watch?v=oItK1u07Qt0")
-            case _:
-                tracks = await lavalink.auto_search_tracks(query)
+        if interaction.user.id in troll_users_links:
+            tracks = await lavalink.auto_search_tracks(troll_users_links[interaction.user.id])
+        else:
+            tracks = await lavalink.auto_search_tracks(query)
     else:
         tracks = await lavalink.auto_search_tracks(query)
 
@@ -254,7 +253,8 @@ async def queue(interaction: discord.Interaction, amount: int = 10):
     tracks = [f"**{i + 1}.** {t.title} ({await bot.fetch_user(int(t.requester))})" for (i, t) in
               enumerate(lis[:amount])]
     await interaction.followup.send(
-        "\n".join(tracks) + "\n**Total Track amount: " + str(len(queue)) + " , and a total playtime of " + length_format(
+        "\n".join(tracks) + "\n**Total Track amount: " + str(
+            len(queue)) + " , and a total playtime of " + length_format(
             totalms) + ".**", ephemeral=True)
 
 
@@ -274,7 +274,7 @@ async def seek(interaction: discord.Interaction, position: str):
     try:
         await lavalink.seek(interaction.guild.id, format_millisecs(position))
         track = await lavalink.queue(interaction.guild.id)
-        await interaction.response.send_message(f"Seeked to { position } in { track[0].title }.")
+        await interaction.response.send_message(f"Seeked to {position} in {track[0].title}.")
     except:
         await interaction.response.send_message(f"Not playing anything.")
 
@@ -463,25 +463,29 @@ async def feed_update():
 async def birthday(interaction: discord.Interaction):
     data = json_read("BirthDay")
     lis = [
-        f"**{ i + 1 }.** { bot.get_user(t.get('id')) } - { t.get('date').split(' ')[0] } which is {relative_time_format(datetime.strptime(t.get('date').split(' ')[0], '%Y-%m-%d'))}"
+        f"**{i + 1}.** {bot.get_user(t.get('id'))} - {t.get('date').split(' ')[0]} which is {relative_time_format(datetime.strptime(t.get('date').split(' ')[0], '%Y-%m-%d'))}"
         for (i, t) in enumerate(data)]
-    embed = discord.Embed(title=f"Who needs bookface when you have { bot.user.display_name }:", description="\n".join(lis))
+    embed = discord.Embed(title=f"Who needs bookface when you have {bot.user.display_name}:",
+                          description="\n".join(lis))
     # embed.add_field(f"**{i + 1}.** {bot.get_user(t.get('id'))} - {t.get('date')}"for (i, t) in enumerate(data))
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
+
 @bot.tree.command(name="spor", description="3 2 1 countdown.")
 async def spor(interaction: discord.Interaction):
-    tracks=await lavalink.auto_search_tracks("https://www.youtube.com/watch?v=kOrZEjLrno0")
+    tracks = await lavalink.auto_search_tracks("https://www.youtube.com/watch?v=kOrZEjLrno0")
     if not interaction.guild.voice_client:
         if not interaction.user.voice:
-            await interaction.followup.send("You are not in a voice channel!",ephemeral=True)
+            await interaction.followup.send("You are not in a voice channel!", ephemeral=True)
             return
-        await interaction.guild.change_voice_state(channel=interaction.user.voice.channel, self_deaf=True, self_mute=False)
+        await interaction.guild.change_voice_state(channel=interaction.user.voice.channel, self_deaf=True,
+                                                   self_mute=False)
         await lavalink.wait_for_connection(interaction.guild.id)
     await interaction.response.send_message("Good luck watching Boku No Pico!")
     await lavalink.play(interaction.guild.id, tracks[0], interaction.user.id)
-    await lavalink.seek(interaction.guild_id,1000)
-    
+    await lavalink.seek(interaction.guild_id, 1000)
+
+
 async def birth_update():
     birth_list = []
     data = json_read("BirthDay")
@@ -565,7 +569,8 @@ async def track_end_event(event: lavaplayer.TrackEndEvent):
             "Finished the Playlist and thus my job here is complete! Sionara!")
         await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=DefaultPresence))
     else:
-        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.listening, name=queue_list[0].title))
+        await bot.change_presence(
+            activity=discord.Activity(type=discord.ActivityType.listening, name=queue_list[0].title))
 
 
 @tasks.loop(hours=1)
