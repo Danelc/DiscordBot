@@ -600,6 +600,7 @@ leave_users_links = {
     256448898925723650: "https://www.youtube.com/watch?v=SX0kCJiueeA",  # yoram
     134769648234266624: "https://www.youtube.com/watch?v=DquFBEz-mb0",  # our lord and savior
     571733232404529162: "https://www.youtube.com/watch?v=wZmsy1k1_t0",  # glazer
+    322727458547826688: "https://www.youtube.com/watch?v=irMzxijZuE0",  # ofagim
 }
 
 
