@@ -231,7 +231,10 @@ async def skip(interaction: discord.Interaction):
     if await is_queue(interaction.guild_id):
         queue = await lavalink.queue(interaction.guild.id)
         # if queue:
-        await interaction.response.send_message("Skipped the track: " + queue[0].title + ".")
+        if queue[0].requester!=696969696969696969:
+            await interaction.response.send_message("Skipped the track: " + queue[0].title + ".")
+        else:
+            await interaction.response.send_message("Skipped the track: REDACTED.")
         await lavalink.skip(interaction.guild.id)
         # if queue:
         #     await bot.change_presence(
@@ -249,18 +252,18 @@ async def queue(interaction: discord.Interaction, amount: int = 10):
     if await is_queue(interaction.guild_id):
         queue = await lavalink.queue(interaction.guild.id)
         totalms = 0
-        for track in queue:
-            totalms = totalms + track.length
-        lis = queue.copy()
-        await interaction.response.defer(ephemeral=True)
-        tracks = [f"**{i + 1}.** {t.title} ({await bot.fetch_user(int(t.requester))})" for (i, t) in
-                enumerate(lis[:amount])]
-        await interaction.followup.send(
-            "\n".join(tracks) + "\n**Total Track amount: " + str(
-                len(queue)) + " , and a total playtime of " + length_format(
-                totalms) + ".**", ephemeral=True)
-    else:
-        return await interaction.response.send_message("No tracks in queue.")
+        lis = list(filter(lambda t: t.requester!=696969696969696969,queue.copy()))
+        if len(lis)>0:
+            for track in lis:
+                totalms = totalms + track.length
+            await interaction.response.defer(ephemeral=True)
+            tracks = [f"**{i + 1}.** {t.title} ({await bot.fetch_user(int(t.requester))})" for (i, t) in
+                    enumerate(lis[:amount])]
+            return await interaction.followup.send(
+                "\n".join(tracks) + "\n**Total Track amount: " + str(
+                    len(lis)) + " , and a total playtime of " + length_format(
+                    totalms) + ".**", ephemeral=True)
+    return await interaction.response.send_message("No tracks in queue.",ephemeral=True)
 
 
 @bot.tree.command(name="volume", description="Set the volume of the player")
@@ -337,7 +340,7 @@ async def repeat(interaction: discord.Interaction, status: bool, queue: bool = F
 
 @bot.tree.command(name="filter", description="Add Filters to the current queue. Leave filter empty to disable")
 @app_commands.describe(rotation="rotations per second", tremolo="tremelo frequency")
-async def filter(interaction: discord.Interaction, rotation: float = 0.0, tremolo: float = 0.0):
+async def _filter(interaction: discord.Interaction, rotation: float = 0.0, tremolo: float = 0.0):
     filters = lavaplayer.Filters()
 
     if rotation > 0:
@@ -582,38 +585,40 @@ def format_millisecs(time_obj: str):
 
 @lavalink.listen(lavaplayer.TrackEndEvent)
 async def track_end_event(event: lavaplayer.TrackEndEvent):
-    queue_list = await lavalink.queue(event.guild_id)
-    if len(queue_list) == 0:
+    if not await is_queue(event.guild_id):
         await bot.get_guild(event.guild_id).change_voice_state(channel=None)
         await lavalink.wait_for_remove_connection(event.guild_id)
-        await bot.get_channel(int(os.getenv("BotText_id"))).send(
-            "Finished the Playlist and thus my job here is complete! Sionara!")
+        # await bot.get_channel(int(os.getenv("BotText_id"))).send(
+        #     "Finished the Playlist and thus my job here is complete! Sionara!")
         await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=DefaultPresence))
     else:
+        queue_list = await lavalink.queue(event.guild_id)
         await bot.change_presence(
             activity=discord.Activity(type=discord.ActivityType.listening, name=queue_list[0].title))
 
 
 leave_users_links = {
-    353219254641885184: "https://www.youtube.com/watch?v=wxqg6oWx0io",  # shauli
+    353219254641885184: "https://www.youtube.com/watch?v=6I21Nl6UQkY",  # shauli
     900987845978763265: "https://www.youtube.com/watch?v=C3YgN8sdZr0",  # uri
-    256448898925723650: "https://www.youtube.com/watch?v=SX0kCJiueeA",  # yoram
+    256448898925723650: "https://www.youtube.com/watch?v=s1qLcOM4I_g",  # yoram
     134769648234266624: "https://www.youtube.com/watch?v=DquFBEz-mb0",  # our lord and savior
     571733232404529162: "https://www.youtube.com/watch?v=wZmsy1k1_t0",  # glazer
-    322727458547826688: "https://www.youtube.com/watch?v=irMzxijZuE0",  # ofagim
+    322727458547826688: "https://www.youtube.com/watch?v=-5AjMYNxYnQ",  # ofagim
+    320501259205607425: "https://www.youtube.com/watch?v=3IWodm0iwt4",  # uriel
+    319920206296121344: "https://www.youtube.com/watch?v=kmGGsSael0U",  # doron
 }
 
 
 @bot.event
 async def on_voice_state_update(member,before,after): # this was all yorams idea dont blame me!
     if member.id in leave_users_links:
-        if before.channel is not None and after.channel is None:
+        if before.channel is not None and (after.channel is None or after.afk):
             if not await is_queue(DEFAULT_GUILD_ENABLE.id):
                 tracks = await lavalink.auto_search_tracks(leave_users_links[member.id])
                 await bot.get_guild(DEFAULT_GUILD_ENABLE.id).change_voice_state(channel=before.channel, self_deaf=True,
                                                             self_mute=False)
                 await lavalink.wait_for_connection(DEFAULT_GUILD_ENABLE.id)
-                await lavalink.play(DEFAULT_GUILD_ENABLE.id, tracks[0], member.id)
+                await lavalink.play(DEFAULT_GUILD_ENABLE.id, tracks[0], 696969696969696969)
         if await is_queue(DEFAULT_GUILD_ENABLE.id)and after.channel is not None:
             bot_channel=None
             guild= bot.get_guild(DEFAULT_GUILD_ENABLE.id)
@@ -626,19 +631,22 @@ async def on_voice_state_update(member,before,after): # this was all yorams idea
                     if bot_channel is not None:
                         break
             if after.channel == bot_channel and (await lavalink.queue(DEFAULT_GUILD_ENABLE.id))[0].uri==leave_users_links[member.id]:
-                await lavalink.stop(DEFAULT_GUILD_ENABLE.id)
+                await lavalink.skip(DEFAULT_GUILD_ENABLE.id)
+    if member==bot.user and after.channel is None and await is_queue(before.channel.guild.id):
+         await lavalink.stop(before.channel.guild.id)
+
 
 @tasks.loop(hours=1)
 async def hour_loop():
     mods = bot.get_guild(DEFAULT_GUILD_ENABLE.id).get_role(758753784297291778).members
     microed = mods[random.randint(0, len(mods) - 1)]
-    microsplit = str(microed).split('#')[0]
-    default_presence = f'for {microsplit}\'s micro penis'
+    # microsplit = microed.name # str(microed).split('#')[0]
+    default_presence = f'for {microed.name}\'s micro penis'
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=default_presence))
     embed = await birth_update()
     if embed:
         await bot.get_channel(int(os.getenv("AnimeText_id"))).send(embed=embed)
-    LOG.info('updated feed')
+    LOG.info('Updated Feed')
     embed = await feed_update()
     if embed:
         await bot.get_channel(int(os.getenv("AnimeText_id"))).send(embed=embed)
