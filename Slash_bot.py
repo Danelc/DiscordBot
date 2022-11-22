@@ -20,6 +20,8 @@ DEFAULT_GUILD_ENABLE = discord.Object(id=os.getenv("Guild_id"))
 TOKEN = os.getenv("DISCORD_TOKEN")  # The bot token.
 trollRoll = 10  # The 1 to trollroll chance to get a troll music when playing for example if equals to 10 the cahnce is 1 in 10 to get a troll, set to 0 to disable
 DefaultPresence = 'boku no pico'
+flag_id=696969696969696969
+max_vol=1000
 
 LOG = logging.getLogger("discord.bot")
 
@@ -217,7 +219,6 @@ async def resume(interaction: discord.Interaction):
 
 @bot.tree.command(name="stop", description="Stop the music!")
 async def stop(interaction: discord.Interaction):
-    # if len(await lavalink.queue(interaction.guild.id))>0:
     if await is_queue(interaction.guild_id):
         await interaction.response.send_message("Stopped the track.")
         await lavalink.stop(interaction.guild.id)
@@ -231,17 +232,11 @@ async def skip(interaction: discord.Interaction):
     if await is_queue(interaction.guild_id):
         queue = await lavalink.queue(interaction.guild.id)
         # if queue:
-        if queue[0].requester!=696969696969696969:
+        if queue[0].requester!=flag_id:
             await interaction.response.send_message("Skipped the track: " + queue[0].title + ".")
         else:
             await interaction.response.send_message("Skipped the track: REDACTED.")
         await lavalink.skip(interaction.guild.id)
-        # if queue:
-        #     await bot.change_presence(
-        #         activity=discord.Activity(type=discord.ActivityType.listening, name=queue[0].title))
-        # return
-        # else:
-        #     await interaction.response.send_message("Theres nothing to skip stupid")
     else:
         await interaction.response.send_message("Theres nothing to skip stupid",ephemeral=True)
 
@@ -252,8 +247,8 @@ async def queue(interaction: discord.Interaction, amount: int = 10):
     if await is_queue(interaction.guild_id):
         queue = await lavalink.queue(interaction.guild.id)
         totalms = 0
-        lis = list(filter(lambda t: t.requester!=696969696969696969,queue.copy()))
-        if len(lis)>0:
+        lis = list(filter(lambda t: t.requester != flag_id, queue.copy()))
+        if len(lis) > 0:
             for track in lis:
                 totalms = totalms + track.length
             await interaction.response.defer(ephemeral=True)
@@ -263,13 +258,13 @@ async def queue(interaction: discord.Interaction, amount: int = 10):
                 "\n".join(tracks) + "\n**Total Track amount: " + str(
                     len(lis)) + " , and a total playtime of " + length_format(
                     totalms) + ".**", ephemeral=True)
-    return await interaction.response.send_message("No tracks in queue.",ephemeral=True)
+    return await interaction.response.send_message("No tracks in queue.", ephemeral=True)
 
 
 @bot.tree.command(name="volume", description="Set the volume of the player")
 @app_commands.describe(volume="Set the volume to a number between 0 and 1000. Deafult is 100")
 async def volume(interaction: discord.Interaction, volume: int = 100):
-    if volume>1000 or volume <0:
+    if volume > max_vol or volume < 0:
         return await interaction.response.send_message("the volume has to be between 0 and 1000")
     if await is_queue(interaction.guild_id):
         await lavalink.volume(interaction.guild.id, volume)
@@ -289,7 +284,7 @@ async def seek(interaction: discord.Interaction, position: str):
         track = await lavalink.queue(interaction.guild.id)
         await interaction.response.send_message(f"Seeked to {position} in {track[0].title}.")
     else:
-        await interaction.response.send_message(f"Not playing anything.",ephemeral=True)
+        await interaction.response.send_message(f"Not playing anything.", ephemeral=True)
 
 
 @bot.tree.command(name="shuffle", description="Shuffle the queue")
@@ -504,7 +499,7 @@ async def spor(interaction: discord.Interaction):
 
 async def is_queue(Guild_id:int):
     try:
-        if len(await lavalink.queue(Guild_id))>0:
+        if len(await lavalink.queue(Guild_id)) > 0:
             return True
     except:
         return False
@@ -590,11 +585,11 @@ async def track_end_event(event: lavaplayer.TrackEndEvent):
         await lavalink.wait_for_remove_connection(event.guild_id)
         # await bot.get_channel(int(os.getenv("BotText_id"))).send(
         #     "Finished the Playlist and thus my job here is complete! Sionara!")
-        await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=DefaultPresence))
+        await bot.change_presence(activity = discord.Activity(type = discord.ActivityType.watching, name = DefaultPresence))
     else:
         queue_list = await lavalink.queue(event.guild_id)
         await bot.change_presence(
-            activity=discord.Activity(type=discord.ActivityType.listening, name=queue_list[0].title))
+            activity=discord.Activity(type = discord.ActivityType.listening, name = queue_list[0].title))
 
 
 leave_users_links = {
@@ -615,24 +610,24 @@ async def on_voice_state_update(member,before,after): # this was all yorams idea
         if before.channel is not None and (after.channel is None or after.afk):
             if not await is_queue(DEFAULT_GUILD_ENABLE.id):
                 tracks = await lavalink.auto_search_tracks(leave_users_links[member.id])
-                await bot.get_guild(DEFAULT_GUILD_ENABLE.id).change_voice_state(channel=before.channel, self_deaf=True,
+                await bot.get_guild(DEFAULT_GUILD_ENABLE.id).change_voice_state(channel=before.channel, self_deaf= True,
                                                             self_mute=False)
                 await lavalink.wait_for_connection(DEFAULT_GUILD_ENABLE.id)
-                await lavalink.play(DEFAULT_GUILD_ENABLE.id, tracks[0], 696969696969696969)
-        if await is_queue(DEFAULT_GUILD_ENABLE.id)and after.channel is not None:
-            bot_channel=None
-            guild= bot.get_guild(DEFAULT_GUILD_ENABLE.id)
+                await lavalink.play(DEFAULT_GUILD_ENABLE.id, tracks[0], flag_id)
+        if await is_queue(DEFAULT_GUILD_ENABLE.id) and after.channel is not None:
+            bot_channel = None
+            guild = bot.get_guild(DEFAULT_GUILD_ENABLE.id)
             for channel in  guild.channels:
                 if isinstance(channel,discord.VoiceChannel):
                     for connected_member in channel.members:
-                        if connected_member==bot.user:
-                            bot_channel=channel
+                        if connected_member == bot.user:
+                            bot_channel = channel
                             break
                     if bot_channel is not None:
                         break
-            if after.channel == bot_channel and (await lavalink.queue(DEFAULT_GUILD_ENABLE.id))[0].uri==leave_users_links[member.id]:
+            if after.channel == bot_channel and (await lavalink.queue(DEFAULT_GUILD_ENABLE.id))[0].uri == leave_users_links[member.id]:
                 await lavalink.skip(DEFAULT_GUILD_ENABLE.id)
-    if member==bot.user and after.channel is None and await is_queue(before.channel.guild.id):
+    if member == bot.user and after.channel is None and await is_queue(before.channel.guild.id):
          await lavalink.stop(before.channel.guild.id)
 
 
